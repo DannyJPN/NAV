@@ -1,0 +1,224 @@
+"""
+ Example program to show using an array to back a grid on-screen.
+ 
+ Sample Python/Pygame Programs
+ Simpson College Computer Science
+ http://programarcadegames.com/
+ http://simpson.edu/computer-science/
+ 
+ Explanation video: http://youtu.be/mdTeqiWyFnc
+"""
+import pygame
+import numpy
+
+
+
+
+
+
+def text_objects(text, color):
+    textSurface = font.render(text, True, color)
+    return textSurface, textSurface.get_rect()
+    
+    
+    
+
+# Define some colors
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+GREEN = (0, 255, 0)
+RED = (255, 0, 0)
+BLUE = (0,0,255)
+ 
+# This sets the WIDTH and HEIGHT of each grid location
+WIDTH = 20
+HEIGHT = 20
+ 
+# This sets the margin between each cell
+MARGIN = 5
+ 
+# Create a 2 dimensional array. A two dimensional
+# array is simply a list of lists.
+grid = []
+hopfieldgrid=[]
+onematrix=[]
+GRIDSIZE=GRIDWIDTH=GRIDHEIGHT=5
+TOTALGRIDWIDTH = MARGIN+(WIDTH+MARGIN)*GRIDWIDTH
+TOTALGRIDHEIGHT=MARGIN+(HEIGHT+MARGIN)*GRIDHEIGHT
+for row in range(GRIDHEIGHT):
+    # Add an empty array that will hold each cell
+    # in this row
+    grid.append([])
+    
+    for column in range(GRIDWIDTH):
+        grid[row].append(0)  # Append a cell
+        
+
+
+for row in range(GRIDSIZE**2):
+    # Add an empty array that will hold each cell
+    # in this row
+    onematrix.append([])
+    hopfieldgrid.append([])
+    for column in range(GRIDSIZE**2):
+        # Append a cell
+        hopfieldgrid[row].append(0)
+        if(row == column):
+            onematrix[row].append(1)
+        else:
+            onematrix[row].append(0)
+# Set row 1, cell 5 to one. (Remember rows and
+# column numbers start at zero.)
+#grid[1][5] = 1
+
+def Learn():
+    global hopfieldgrid
+    print("Primary grid {0}".format(grid))
+    #subtracted = numpy.subtract(grid,onematrix)
+    #subtracted[subtracted==0]=-1
+    #patterngrid=list([list(x) for x in subtracted])
+    #print("Pattern grid {0}".format(patterngrid))
+    vect = numpy.reshape(grid,(1,-1)).tolist()[0]
+    for v in range(len(vect)):
+        if vect[v] == 0:
+            vect[v]=-1
+    print("Grid forms vector {0}".format(vect))
+    hopfield=list([list(y) for y in numpy.multiply(vect,[list(x) for x in numpy.reshape(vect,(len(vect),1))])])
+    print("Hopfield init net {0}".format(hopfield))
+    hopfield=numpy.subtract(hopfield,onematrix)
+    print("Hopfield net {0}".format(hopfield))
+    hopfieldgrid = numpy.add(hopfieldgrid,hopfield)
+    print("Final Hopfield {0}".format(hopfieldgrid))
+
+def SynchroRetrieve():
+    global grid
+    invect = numpy.reshape(grid,(-1,1)).tolist()
+    print("Input vector {0}".format(invect))
+    outvect = list([list(x) for x in numpy.reshape(list(numpy.sign(numpy.matmul(hopfieldgrid,invect))),(1,-1))])[0]
+    print("Init output {0}".format(outvect))
+    for v in range(len(outvect)):
+        if outvect[v] <0:
+            outvect[v]=0
+    pattern = numpy.reshape(outvect,(GRIDSIZE,GRIDSIZE))
+    print("Final grid {0}".format(pattern))
+    grid = pattern
+
+def AsyncRetrieve():
+    global grid
+    invect = numpy.reshape(grid,(1,-1)).tolist()[0]
+    print("Input vector {0}".format(invect))    
+    for col in range(len(hopfieldgrid)):
+        column = numpy.array(hopfieldgrid)[:,col]
+        print("Invect {2} * Column {0} ({1})".format(col,column,invect))
+        result=int(numpy.sign(numpy.matmul(invect,column)))
+        print("Result: {0}".format(result))
+        invect[col]=result
+        print("Invect {0}".format(invect))
+    for v in range(len(invect)):
+        if invect[v] <0:
+            invect[v]=0
+    print("Final Vect {0}".format(invect))
+    pattern = numpy.reshape(invect,(GRIDSIZE,GRIDSIZE))
+    print("Final grid {0}".format(pattern))
+    grid = pattern
+        
+
+# Initialize pygame
+pygame.init()
+buttonheight=HEIGHT
+learn_button=(MARGIN,TOTALGRIDHEIGHT,TOTALGRIDWIDTH-MARGIN*2,buttonheight)
+synchroget_button=(MARGIN,TOTALGRIDHEIGHT+MARGIN+buttonheight,TOTALGRIDWIDTH-MARGIN*2,buttonheight) 
+asyncget_button=(MARGIN,TOTALGRIDHEIGHT+(MARGIN+buttonheight)*2,TOTALGRIDWIDTH-MARGIN*2,buttonheight)
+
+
+
+
+# Set the HEIGHT and WIDTH of the screen
+winwidth=TOTALGRIDWIDTH
+winheight=(TOTALGRIDHEIGHT)+(MARGIN+buttonheight)*3+MARGIN
+WINDOW_SIZE = [winwidth, winheight]
+screen = pygame.display.set_mode(WINDOW_SIZE)
+font = pygame.font.Font('freesansbold.ttf',20)
+
+learnname, learnname_Rect = text_objects("Learn",BLACK)
+syncname, syncname_Rect = text_objects("Synchro get",BLACK)
+asyncname, asyncname_Rect = text_objects("Async get",BLACK)
+learnname_Rect.center = winwidth/2 , ((learn_button[1]+learn_button[3])+learn_button[1])/2
+syncname_Rect.center = winwidth/2 , ((synchroget_button[1]+synchroget_button[3])+synchroget_button[1])/2
+asyncname_Rect.center = winwidth/2 , ((asyncget_button[1]+asyncget_button[3])+asyncget_button[1])/2
+
+
+# Set title of screen
+pygame.display.set_caption("Array Backed Grid")
+ 
+# Loop until the user clicks the close button.
+done = False
+ 
+# Used to manage how fast the screen updates
+clock = pygame.time.Clock()
+
+# -------- Main Program Loop -----------
+while not done:
+    for event in pygame.event.get():  # User did something
+        if event.type == pygame.QUIT:  # If user clicked close
+            done = True  # Flag that we are done so we exit this loop
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            # User clicks the mouse. Get the position
+            pos = pygame.mouse.get_pos()
+            # Change the x/y screen coordinates to grid coordinates
+            column = pos[0] // (WIDTH + MARGIN)
+            row = pos[1] // (HEIGHT + MARGIN)
+            
+            if(column < GRIDWIDTH and row < GRIDHEIGHT):
+                # Set that location to one
+                if grid[row][column] == 0:
+                    grid[row][column] = 1
+                    print("Clicked white cell ({0})".format(grid[row][column]), pos, "Grid coordinates: ", row, column)
+                else:
+                    grid[row][column] = 0
+                    print("Clicked non-white cell ({0})".format(grid[row][column]), pos, "Grid coordinates: ", row, column)
+            else:
+                if(pos[1] > learn_button[1] and pos[1] <= learn_button[1]+learn_button[3]):
+                    print("Clicked learn button")
+                    Learn()
+                elif(pos[1] > synchroget_button[1] and pos[1] <= synchroget_button[1]+synchroget_button[3]):
+                    print("Clicked synchro button")
+                    SynchroRetrieve()
+                elif(pos[1] > asyncget_button[1] and pos[1] <= asyncget_button[1]+asyncget_button[3]):
+                    print("Clicked async button")
+                    AsyncRetrieve()
+                else:
+                    print("Clicked elsewhere")
+                
+ 
+    # Set the screen background
+    screen.fill(BLACK)
+ 
+    # Draw the grid
+    for row in range(GRIDHEIGHT):
+        for column in range(GRIDWIDTH):
+            color = WHITE
+            if grid[row][column] == 1:
+                color = BLUE
+            pygame.draw.rect(screen,
+                             color,
+                             [(MARGIN + WIDTH) * column + MARGIN,
+                              (MARGIN + HEIGHT) * row + MARGIN,
+                              WIDTH,
+                              HEIGHT])
+    pygame.draw.rect(screen,GREEN,learn_button)
+    pygame.draw.rect(screen,GREEN,synchroget_button)
+    pygame.draw.rect(screen,GREEN,asyncget_button)
+    screen.blit(learnname,learnname_Rect)
+    screen.blit(syncname,syncname_Rect)
+    screen.blit(asyncname,asyncname_Rect)
+    
+    # Limit to 60 frames per second
+    clock.tick(60)
+ 
+    # Go ahead and update the screen with what we've drawn.
+    pygame.display.flip()
+ 
+# Be IDLE friendly. If you forget this line, the program will 'hang'
+# on exit.
+pygame.quit()
